@@ -2,8 +2,9 @@ from aiogram import types, Dispatcher
 
 
 async def cmd_start(message: types.Message):
-    await message.reply(
-            "Привет! Скинь мне таблицу сотрудников, чтобы начать. Или добавь сотрудников вручную командой /add"
+    await message.reply_document(
+        open('files/Презентация бота.pdf', 'rb'),
+        "Привет! Ознакомься с инструкцией)"
     )
 
 
