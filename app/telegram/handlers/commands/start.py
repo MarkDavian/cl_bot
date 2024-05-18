@@ -9,4 +9,4 @@ async def cmd_start(message: types.Message):
 
 
 def reg_start_cmd(dp: Dispatcher):
-    dp.register_message_handler(cmd_start, commands="start")
+    dp.register_message_handler(cmd_start, commands="start", state="*")
