@@ -7,9 +7,7 @@ def check_birthday() -> list[Employee]:
     dr = []
     for employee in employees:
         if (
-            employee.get_days_to() != 'Неизвестно' and employee.get_days_to() < 30
-            or 
-            employee.get_days_to() != 'Неизвестно' and employee.get_days_to() < 7
+            employee.get_days_to() != 'Неизвестно' and employee.get_days_to() < 10
         ):
             dr.append(employee)
         
