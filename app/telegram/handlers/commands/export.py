@@ -18,4 +18,4 @@ async def cmd_export(message: types.Message):
 
 
 def reg_export_cmd(dp: Dispatcher):
-    dp.register_message_handler(cmd_export, commands="export")
+    dp.register_message_handler(cmd_export, commands="export", state='*')
