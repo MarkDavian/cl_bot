@@ -14,30 +14,32 @@ async def _start_notifier():
     bot = Bot(SETTINGS.BOT_TOKEN, parse_mode='html')
 
     while True:
-        employees = check_birthday()
-        if len(employees) != 0:
-            for employee in employees:
+        employees_birthday = check_birthday()
+        employees_lmk = check_lmk()
+        if len(employees_birthday) != 0:
+            for employee in employees_birthday:
                 await bot.send_message(
                     chat_id=SETTINGS.CHAT,
                     text=(
+                        "<b>СКОРО ДЕНЬ РОЖДЕНИЯ</b>\n"
                         f"<b>Сотрудник:</b> {employee.name}\n"
                         f"<b>Дата рождения:</b> {employee.birthday}\n"
                         f"<b>Полных лет:</b> {employee.get_years_old()}\n\n"
                         f"<b>ДР через (дней):</b> {employee.get_days_to()}"
                     )
                 )
-        # if employee := check_lmk():
-        #     await bot.send_message(
-        #         chat_id=SETTINGS.CHAT,
-        #         text=(
-        #                 f"Сотрудник: {employee.name}"
-        #                 f"Дата рождения: {employee.birthday}"
-        #                 f"Полных лет: {employee.get_years_old()}"
-        #                 f"ЛМК от: {employee.lmk}"
-        #         )
-        #     )
-        # time.sleep(SETTINGS.INTERVAL)
-        await asyncio.sleep(5)
+        if len(employees_lmk) != 0:
+            for employee in employees_lmk:
+                await bot.send_message(
+                    chat_id=SETTINGS.CHAT,
+                    text=(
+                            "<b>ОБРАТИ ВНИМАНИЕ НА МЕДКНИЖКУ</b>\n"
+                            f"Сотрудник: {employee.name}\n"
+                            f"Полных лет: {employee.get_years_old()}\n\n"
+                            f"ЛМК от: {employee.lmk}"
+                    )
+                )
+        time.sleep(SETTINGS.INTERVAL_24*2)
 
 
 def start_notifier():

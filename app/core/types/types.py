@@ -79,6 +79,15 @@ class Employee():
         
         now = datetime.now()
         return self._calculate_dates(birthday, now)
+
+    def get_days_lmk(self):
+        try:
+            lmk = datetime.strptime(self.lmk, '%d.%m.%Y')
+        except ValueError:
+            return "Неизвестно"
+        
+        now = datetime.now()
+        return self._calculate_dates(lmk, now)
         
     def _calculate_dates(self, original_date, now):
         delta1 = datetime(now.year, original_date.month, original_date.day)
