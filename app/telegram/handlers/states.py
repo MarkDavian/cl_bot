@@ -40,3 +40,7 @@ class EmployeesSG(StatesGroup):
 class CurSG(StatesGroup):
     Choose = State()
     Employee = State()
+
+
+class PlanB(StatesGroup):
+    wait = State()
