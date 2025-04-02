@@ -5,3 +5,4 @@
 Сотрудники.xlsx
 __pycache__
 .gitignore
+.env

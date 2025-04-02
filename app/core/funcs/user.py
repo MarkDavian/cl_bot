@@ -1,5 +1,8 @@
 from app.core.db.database import Users
 from app.core.types.types import UserBuilder, User
+from config import SETTINGS
+
+
 
 
 def add_user(
@@ -33,6 +36,7 @@ def get_all_to_notify() -> list[str]:
         for с, item in enumerate(users):
             if item['chat_notify'] == True:
                 to_notify.append(item['id'])
+    to_notify.append(SETTINGS.CHAT)
                 
     return to_notify
 
