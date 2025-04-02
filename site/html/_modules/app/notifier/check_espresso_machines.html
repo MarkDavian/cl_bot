@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html lang="ru" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>app.notifier.check_espresso_machines &#8212; документация CL Bot 2.0</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=0eddcf85"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/translations.js?v=cd1d70c9"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Исходный код app.notifier.check_espresso_machines</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">app.core.db.espresso_machines</span><span class="w"> </span><span class="kn">import</span> <span class="n">EspressoMachinesDB</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.core.types.espresso_machine</span><span class="w"> </span><span class="kn">import</span> <span class="n">EspressoMachine</span>
+
+
+<div class="viewcode-block" id="check_espresso_machines">
+<a class="viewcode-back" href="../../../modules/notifier/checkers.html#app.notifier.check_espresso_machines.check_espresso_machines">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_espresso_machines</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">EspressoMachine</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Проверяет все кофемашины на необходимость замены резинок</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        list[EspressoMachine]: Список кофемашин, требующих замены резинок</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">EspressoMachinesDB</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">get_machines_needing_gasket_replacement</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="format_notification_message">
+<a class="viewcode-back" href="../../../modules/notifier/checkers.html#app.notifier.check_espresso_machines.format_notification_message">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_notification_message</span><span class="p">(</span><span class="n">machines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">EspressoMachine</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Форматирует сообщение для уведомления</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        machines: Список кофемашин, требующих замены резинок</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Отформатированное сообщение</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">machines</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        
+    <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;⚠️ Требуется замена резинок-уплотнителей в следующих кофемашинах:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    
+    <span class="k">for</span> <span class="n">machine</span> <span class="ow">in</span> <span class="n">machines</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;📍 </span><span class="si">{</span><span class="n">machine</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;📝 Модель: </span><span class="si">{</span><span class="n">machine</span><span class="o">.</span><span class="n">model</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;🔄 Последняя замена: </span><span class="si">{</span><span class="n">machine</span><span class="o">.</span><span class="n">last_gasket_replacement</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;⏰ Следующая замена: </span><span class="si">{</span><span class="n">machine</span><span class="o">.</span><span class="n">next_gasket_replacement</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        
+    <span class="k">return</span> <span class="n">message</span> </div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">CL Bot</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Искать" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Навигация</h3>
+<p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/main.html">Главный модуль</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/core/index.html">Модуль Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/telegram/index.html">Модуль Telegram</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/notifier/index.html">Модуль Notifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/backup/index.html">Модуль Backup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/backup/index.html#id1">Основной модуль резервного копирования</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/settings.html">Настройки</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/settings.html#id2">Управление настройками</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/settings.html#id3">Основные настройки</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/settings.html#id4">Временные интервалы</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Код модуля</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Mark Davian.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

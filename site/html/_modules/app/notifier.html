@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html lang="ru" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>app.notifier &#8212; документация CL Bot 2.0</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=0eddcf85"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/translations.js?v=cd1d70c9"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Исходный код app.notifier</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Модуль системы уведомлений приложения CL Bot.</span>
+
+<span class="sd">Этот модуль обеспечивает функциональность отправки различных типов уведомлений</span>
+<span class="sd">пользователям с настраиваемыми интервалами. Система отслеживает важные события, </span>
+<span class="sd">такие как дни рождения сотрудников, необходимость обновления медицинских книжек,</span>
+<span class="sd">истечение срока действия сертификатов и техническое обслуживание кофемашин.</span>
+
+<span class="sd">Уведомления отправляются в строго определенное время (по умолчанию в 9:00),</span>
+<span class="sd">что предотвращает получение пользователями множества разрозненных сообщений</span>
+<span class="sd">в течение дня.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aiogram</span><span class="w"> </span><span class="kn">import</span> <span class="n">Bot</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">config</span><span class="w"> </span><span class="kn">import</span> <span class="n">SETTINGS</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.core.funcs.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_app</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.notifier.check_birthday</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_birthday</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.notifier.check_lmk</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_lmk</span><span class="p">,</span> <span class="n">check_exp_lmk</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.notifier.check_anniversary</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_anniversary</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.notifier.check_certs</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_certs</span><span class="p">,</span> <span class="n">check_exp_certs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.notifier.check_espresso_machines</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_espresso_machines</span><span class="p">,</span> <span class="n">format_notification_message</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.core.funcs.user</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_all_to_notify</span>
+
+<span class="c1"># Хранилище для сообщений, которые нужно отправить в указанное время</span>
+<span class="n">pending_notifications</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;birthday&#39;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s1">&#39;lmk&#39;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s1">&#39;certificates&#39;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s1">&#39;anniversary&#39;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s1">&#39;espresso&#39;</span><span class="p">:</span> <span class="p">[]</span>
+<span class="p">}</span>
+
+<span class="c1"># Отслеживаем день последней отправки уведомлений</span>
+<span class="n">last_notification_day</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="send_message">
+<a class="viewcode-back" href="../../modules/notifier/index.html#app.notifier.send_message">[документация]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Отправляет сообщение пользователю через Telegram API.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        chat_id (int): Уникальный идентификатор чата, куда отправляется сообщение</span>
+<span class="sd">        text (str): Текст сообщения для отправки</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bot</span> <span class="o">=</span> <span class="n">Bot</span><span class="p">(</span><span class="n">SETTINGS</span><span class="o">.</span><span class="n">BOT_TOKEN</span><span class="p">,</span> <span class="n">parse_mode</span><span class="o">=</span><span class="s1">&#39;html&#39;</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">bot</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span>
+        <span class="n">chat_id</span><span class="o">=</span><span class="n">chat_id</span><span class="p">,</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">text</span>
+    <span class="p">)</span>
+    <span class="k">await</span> <span class="n">bot</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="is_notification_time">
+<a class="viewcode-back" href="../../modules/notifier/index.html#app.notifier.is_notification_time">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_notification_time</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Проверяет, является ли текущее время временем для отправки уведомлений.</span>
+<span class="sd">    </span>
+<span class="sd">    Сравнивает текущее время с установленным временем отправки уведомлений,</span>
+<span class="sd">    допуская погрешность в ±2 минуты для надежности.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True если текущее время находится в пределах окна отправки,</span>
+<span class="sd">              False в противном случае</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">get_app</span><span class="p">()</span>
+    <span class="n">notify_time</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">time_to_notify</span>
+    
+    <span class="c1"># Разбираем время для сравнения (формат &#39;9:00&#39;)</span>
+    <span class="n">notify_hour</span><span class="p">,</span> <span class="n">notify_minute</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">notify_time</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">))</span>
+    
+    <span class="c1"># Получаем текущее время</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="n">current_hour</span><span class="p">,</span> <span class="n">current_minute</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">minute</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">current_hour</span><span class="p">,</span> <span class="n">current_minute</span><span class="p">,</span> <span class="n">notify_hour</span><span class="p">,</span> <span class="n">notify_minute</span><span class="p">)</span>
+    
+    <span class="c1"># Преобразуем время в минуты с начала дня для обоих значений</span>
+    <span class="n">current_time_minutes</span> <span class="o">=</span> <span class="n">current_hour</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">current_minute</span>
+    <span class="n">notify_time_minutes</span> <span class="o">=</span> <span class="n">notify_hour</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">notify_minute</span>
+    
+    <span class="c1"># Проверяем, находится ли текущее время в окне допустимых значений (±2 минуты)</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">current_time_minutes</span> <span class="o">-</span> <span class="n">notify_time_minutes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="should_send_missed_notifications">
+<a class="viewcode-back" href="../../modules/notifier/index.html#app.notifier.should_send_missed_notifications">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">should_send_missed_notifications</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Проверяет, нужно ли отправить пропущенные уведомления.</span>
+<span class="sd">    </span>
+<span class="sd">    Вызывается при запуске бота для проверки, не было ли пропущено</span>
+<span class="sd">    время отправки уведомлений в текущий день (например, если бот </span>
+<span class="sd">    был выключен во время запланированной отправки).</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True если уведомления за сегодня еще не отправлялись и </span>
+<span class="sd">              текущее время уже прошло запланированное время отправки,</span>
+<span class="sd">              False в противном случае</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">last_notification_day</span>
+    
+    <span class="c1"># Получаем текущие дату и время</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="n">current_day</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">day</span>
+    
+    <span class="c1"># Разбираем время отправки</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">get_app</span><span class="p">()</span>
+    <span class="n">notify_time</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">time_to_notify</span>
+    <span class="n">notify_hour</span><span class="p">,</span> <span class="n">notify_minute</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">notify_time</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">))</span>
+    
+    <span class="c1"># Если время отправки уже прошло сегодня и не отправляли сегодня уведомления</span>
+    <span class="n">current_time_minutes</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">hour</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">now</span><span class="o">.</span><span class="n">minute</span>
+    <span class="n">notify_time_minutes</span> <span class="o">=</span> <span class="n">notify_hour</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">notify_minute</span>
+    
+    <span class="c1"># Проверяем: </span>
+    <span class="c1"># 1. Если день последней отправки не совпадает с текущим днем (или None)</span>
+    <span class="c1"># 2. Если текущее время больше времени отправки</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">last_notification_day</span> <span class="o">!=</span> <span class="n">current_day</span> <span class="ow">and</span> 
+            <span class="n">current_time_minutes</span> <span class="o">&gt;</span> <span class="n">notify_time_minutes</span><span class="p">)</span></div>
+
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__dr_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Асинхронная функция для отслеживания приближающихся дней рождения сотрудников.</span>
+<span class="sd">    </span>
+<span class="sd">    Регулярно проверяет список сотрудников и формирует уведомления о предстоящих</span>
+<span class="sd">    днях рождения, которые затем будут отправлены в запланированное время.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">dr</span> <span class="o">=</span> <span class="n">check_birthday</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dr</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;🎂 В ближайшие дни Дни Рождения у следующих сотрудников:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">employee</span> <span class="ow">in</span> <span class="n">dr</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">employee</span><span class="o">.</span><span class="n">get_days_to_birth</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - завтра День Рождения! Ура!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>   
+                    <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - через </span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">get_days_to_birth</span><span class="p">()</span><span class="si">}</span><span class="s2"> дней</span><span class="se">\n</span><span class="s2">&quot;</span>
+            
+            <span class="c1"># Сохраняем сообщение для отправки в указанное время</span>
+            <span class="n">pending_notifications</span><span class="p">[</span><span class="s1">&#39;birthday&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">message</span><span class="p">,</span> <span class="n">get_all_to_notify</span><span class="p">())]</span>
+
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">dr_notify_time_interval</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__lmk_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Асинхронная функция для мониторинга статуса медицинских книжек сотрудников.</span>
+<span class="sd">    </span>
+<span class="sd">    Проверяет как уже просроченные, так и скоро истекающие медицинские книжки,</span>
+<span class="sd">    формируя соответствующие уведомления для пользователей.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">lmk</span> <span class="o">=</span> <span class="n">check_lmk</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">lmk</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;⚠️ Просрочены мед. книжки у следующих сотрудников:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">employee</span> <span class="ow">in</span> <span class="n">lmk</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - просрочена мед. книжка</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="n">lmk</span> <span class="o">=</span> <span class="n">check_exp_lmk</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">lmk</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;⚠️ В ближайшие дни истекает срок действия ЛМК у следующих сотрудников:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">employee</span> <span class="ow">in</span> <span class="n">lmk</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - через </span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">get_days_lmk</span><span class="p">()</span><span class="si">}</span><span class="s2"> дней</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="c1"># Сохраняем сообщения для отправки в указанное время</span>
+            <span class="n">pending_notifications</span><span class="p">[</span><span class="s1">&#39;lmk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">msg</span><span class="p">,</span> <span class="n">get_all_to_notify</span><span class="p">())</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">]</span>
+
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">lmk_notify_time_interval</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__certs_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Асинхронная функция для отслеживания статуса профессиональных сертификатов.</span>
+<span class="sd">    </span>
+<span class="sd">    Проверяет как уже просроченные, так и скоро истекающие сертификаты </span>
+<span class="sd">    сотрудников, формируя соответствующие уведомления.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">employees</span> <span class="o">=</span> <span class="n">check_certs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">employees</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;⚠️ Просрочены сертификаты у следующих сотрудников:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">employee</span><span class="p">,</span> <span class="n">cert_type</span> <span class="ow">in</span> <span class="n">employees</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - просрочен сертификат </span><span class="si">{</span><span class="n">cert_type</span><span class="si">}</span><span class="s2"> от </span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">get_cert_by_type</span><span class="p">(</span><span class="n">cert_type</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="n">employees</span> <span class="o">=</span> <span class="n">check_exp_certs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">employees</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;⚠️ В ближайшие дни истекает срок действия сертификатов у следующих сотрудников:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">employee</span><span class="p">,</span> <span class="n">cert_type</span> <span class="ow">in</span> <span class="n">employees</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">cert_type</span><span class="si">}</span><span class="s2"> – через </span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">get_days_to_cert</span><span class="p">(</span><span class="n">cert_type</span><span class="p">)</span><span class="si">}</span><span class="s2"> дней</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="c1"># Сохраняем сообщения для отправки в указанное время</span>
+            <span class="n">pending_notifications</span><span class="p">[</span><span class="s1">&#39;certificates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">msg</span><span class="p">,</span> <span class="n">get_all_to_notify</span><span class="p">())</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">]</span>
+
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">certs_time_interval</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__anniversary_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Асинхронная функция для отслеживания приближающихся юбилеев работы сотрудников.</span>
+<span class="sd">    </span>
+<span class="sd">    Проверяет список сотрудников на предмет юбилеев и формирует </span>
+<span class="sd">    уведомления о таких событиях.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">anniversary</span> <span class="o">=</span> <span class="n">check_anniversary</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">anniversary</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;🎉 В ближайшие дни юбилеи у следующих сотрудников:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">employee</span> <span class="ow">in</span> <span class="n">anniversary</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - через </span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">get_days_to_anniversary</span><span class="p">()</span><span class="si">}</span><span class="s2"> дней</span><span class="se">\n</span><span class="s2">&quot;</span>
+            
+            <span class="c1"># Сохраняем сообщение для отправки в указанное время</span>
+            <span class="n">pending_notifications</span><span class="p">[</span><span class="s1">&#39;anniversary&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">message</span><span class="p">,</span> <span class="n">get_all_to_notify</span><span class="p">())]</span>
+
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">get_app</span><span class="p">()</span><span class="o">.</span><span class="n">anniversary_time_interval</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__espresso_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Асинхронная функция для мониторинга состояния кофемашин.</span>
+<span class="sd">    </span>
+<span class="sd">    Проверяет необходимость технического обслуживания и </span>
+<span class="sd">    замены уплотнителей в кофемашинах, формируя соответствующие уведомления.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">machines</span> <span class="o">=</span> <span class="n">check_espresso_machines</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">machines</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">format_notification_message</span><span class="p">(</span><span class="n">machines</span><span class="p">)</span>
+            
+            <span class="c1"># Сохраняем сообщение для отправки в указанное время</span>
+            <span class="n">pending_notifications</span><span class="p">[</span><span class="s1">&#39;espresso&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">message</span><span class="p">,</span> <span class="n">get_all_to_notify</span><span class="p">())]</span>
+
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">86400</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">__notification_sender</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Асинхронная функция для отправки накопленных уведомлений в указанное время.</span>
+<span class="sd">    </span>
+<span class="sd">    Отвечает за проверку текущего времени и отправку всех накопленных</span>
+<span class="sd">    уведомлений различных типов в установленное время дня.</span>
+<span class="sd">    При первом запуске также проверяет, не были ли пропущены уведомления</span>
+<span class="sd">    за текущий день.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">last_notification_day</span>
+    
+    <span class="c1"># При первом запуске проверяем, не пропустили ли мы время отправки сегодня</span>
+    <span class="k">if</span> <span class="n">should_send_missed_notifications</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Обнаружены пропущенные уведомления, отправляем сразу...&quot;</span><span class="p">)</span>
+        <span class="c1"># Отправляем все накопленные уведомления</span>
+        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">notifications</span> <span class="ow">in</span> <span class="n">pending_notifications</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">message</span><span class="p">,</span> <span class="n">chat_ids</span> <span class="ow">in</span> <span class="n">notifications</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">chat_id</span> <span class="ow">in</span> <span class="n">chat_ids</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+            
+            <span class="c1"># Очищаем отправленные уведомления</span>
+            <span class="n">pending_notifications</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Обновляем день последней отправки уведомлений</span>
+        <span class="n">last_notification_day</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">day</span>
+    
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># Проверяем, пришло ли время отправки уведомлений</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">is_notification_time</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">is_notification_time</span><span class="p">():</span>
+            <span class="c1"># Отправляем все накопленные уведомления</span>
+            <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">notifications</span> <span class="ow">in</span> <span class="n">pending_notifications</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">message</span><span class="p">,</span> <span class="n">chat_ids</span> <span class="ow">in</span> <span class="n">notifications</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">chat_id</span> <span class="ow">in</span> <span class="n">chat_ids</span><span class="p">:</span>
+                        <span class="k">await</span> <span class="n">send_message</span><span class="p">(</span><span class="n">chat_id</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+                
+                <span class="c1"># Очищаем отправленные уведомления</span>
+                <span class="n">pending_notifications</span><span class="p">[</span><span class="n">category</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="c1"># Обновляем день последней отправки уведомлений</span>
+            <span class="n">last_notification_day</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">day</span>
+        
+        <span class="c1"># Проверяем время каждую минуту</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_start_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Запускает все асинхронные задачи системы уведомлений.</span>
+<span class="sd">    </span>
+<span class="sd">    Использует asyncio.gather для параллельного запуска всех функций-notifier,</span>
+<span class="sd">    что позволяет эффективно обрабатывать различные типы уведомлений одновременно.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+        <span class="n">__dr_notifier</span><span class="p">(),</span>
+        <span class="n">__lmk_notifier</span><span class="p">(),</span>
+        <span class="n">__certs_notifier</span><span class="p">(),</span>
+        <span class="n">__anniversary_notifier</span><span class="p">(),</span>
+        <span class="n">__espresso_notifier</span><span class="p">(),</span>
+        <span class="n">__notification_sender</span><span class="p">()</span>  <span class="c1"># Функция отправки уведомлений</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="start_notifier">
+<a class="viewcode-back" href="../../modules/notifier/index.html#app.notifier.start_notifier">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">start_notifier</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Основная функция для запуска системы уведомлений.</span>
+<span class="sd">    </span>
+<span class="sd">    Вызывается из главного модуля приложения для активации</span>
+<span class="sd">    всей системы мониторинга и отправки уведомлений.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">_start_notifier</span><span class="p">())</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">CL Bot</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Искать" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Навигация</h3>
+<p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/main.html">Главный модуль</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/core/index.html">Модуль Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/telegram/index.html">Модуль Telegram</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/notifier/index.html">Модуль Notifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/backup/index.html">Модуль Backup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/settings.html">Настройки</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Код модуля</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Mark Davian.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
