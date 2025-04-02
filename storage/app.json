@@ -1,8 +1,0 @@
-{
-  "password": "1111",
-  "lmk_notify_time_interval": 86400,
-  "dr_notify_time_interval": 86400,
-  "anniversary_time_interval": 8400,
-  "certs_time_interval": 86400,
-  "time_to_notify": "10:00"
-}
