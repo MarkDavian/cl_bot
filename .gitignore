@@ -1,9 +1,0 @@
-.DS_Store
-/venv
-.token
-.chat
-Сотрудники.xlsx
-__pycache__
-.gitignore
-.env
-Thumbs.db
