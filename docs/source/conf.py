@@ -11,6 +11,7 @@ copyright = '2025, Mark Davian'
 author = 'Mark Davian'
 release = '2.0'
 html_title = "CL BOT 2.0"
+html_baseurl = "https://markdavian.github.io/cl_bot/"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
