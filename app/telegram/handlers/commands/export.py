@@ -18,15 +18,17 @@ async def cmd_export(message: types.Message):
 
 
     await bot.send_document(
-            chat_id=-1002156206771,
+            chat_id=message.chat.id,
             document=open("files/Сотрудники.xlsx", "rb"),
             caption="Таблица сотрудников"
         )
     await bot.send_document(
-            chat_id=-1002156206771,
+            chat_id=message.chat.id,
             document=open("storage/storage.json", "rb"),
             caption="Storage сотрудников"
         )
+    
+    await bot.session.close()
 
 
 def reg_export_cmd(dp: Dispatcher):

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "67e421bda73e9252a98d5465",
+    "location": "фили",
+    "model": "nuova simonelli appia 2",
+    "service_dates": [
+      {
+        "date": "25.03.2025",
+        "description": "ТО",
+        "authorized": 1631513712,
+        "_id": "67ea27c0a73e92840013eddd"
+      }
+    ],
+    "last_gasket_replacement": "01.04.2025",
+    "next_gasket_replacement": "01.10.2025"
+  },
+  {
+    "id": "67e421bda73e9252a98d5466",
+    "location": "пруд",
+    "model": "nuova simonelli appia 2",
+    "service_dates": [
+      {
+        "date": "17.02.2025",
+        "description": "service",
+        "authorized": null,
+        "_id": "67ea27b4a73e92840013edda"
+      }
+    ],
+    "last_gasket_replacement": "25.03.2025",
+    "next_gasket_replacement": "25.09.2025"
+  },
+  {
+    "id": "67e421bda73e9252a98d5467",
+    "location": "пресня",
+    "model": "nuova simonelli appia 2",
+    "service_dates": [
+      {
+        "date": "17.02.2025",
+        "description": "service",
+        "authorized": null,
+        "_id": "67ea27b4a73e92840013eddb"
+      }
+    ],
+    "last_gasket_replacement": "10.01.2025",
+    "next_gasket_replacement": "10.07.2025"
+  },
+  {
+    "id": "67e421bda73e9252a98d5468",
+    "location": "соко",
+    "model": "nuova simonelli appia 2",
+    "service_dates": [
+      {
+        "date": "17.02.2025",
+        "description": "service",
+        "authorized": null,
+        "_id": "67ea27b4a73e92840013eddc"
+      }
+    ],
+    "last_gasket_replacement": "20.03.2025",
+    "next_gasket_replacement": "20.09.2025"
+  }
+]

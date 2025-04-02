@@ -1,128 +1,43 @@
-from datetime import datetime
+import hashlib
 
+from app.core.types.employee import Employee, EmployeeBuilder
+from app.core.types.user import User, UserBuilder
+from app.core.types.app import App, AppBuilder
 
-class Employee():
-    name: str
-    birthday: str
-    registration: str
-    experience: str
-    workstarted: str
-    lmk: str
-    id: str
+__all__ = [
+    'Employee',
+    'EmployeeBuilder',
+    'User',
+    'UserBuilder',
+    'App',
+    'AppBuilder'
+]
 
-    def __init__(self,
-                name: str,
-                birthday: str,
-                registration: str,
-                workstarted: str,
-                lmk: str,
-                id: str) -> None:
-        self.name = name
-        self.birthday = birthday
-        self.registration = registration
-        self.workstarted = workstarted
-        self.lmk = lmk
-        self.id = id
+class CallbackData:
+    prefix = None
 
-    def __dict__(self) -> dict:
-        return {
-            "name": self.name,
-            "birthday": self.birthday,
-            "registration": self.registration,
-            "workstarted": self.workstarted,
-            "lmk": self.lmk,
-            "id": self.id
-        }
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
-    def get_experience(self) -> str:
-        try:
-            workstarted_date = datetime.strptime(self.workstarted, '%d.%m.%Y')
-        except ValueError:
-            return "Неизвестно"
-        
-        experience_date = datetime.now() - workstarted_date
+    def __init_subclass__(cls, prefix=None, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if prefix is not None:
+            cls.prefix = prefix
 
-        years = experience_date.days // 365
-        days = experience_date.days - (years*365)
-
-        month = days // 30
-        days = days - (month*30)
-
-        if years == 1:
-            years_postfix = "год"
-        elif years == 2 or years == 3 or years == 4:
-            years_postfix = "года"
-        else:
-            years_postfix = "лет"
-
-        if month == 1:
-            month_postfix = "месяц"
-        elif month == 2 or month == 3 or month == 4:
-            month_postfix = "месяца"
-        else:
-            month_postfix = "месяцев"
-
-        if days == 1 or list(str(days))[-1] == 1:
-            days_postfix = "день"
-        elif days == 2 or days == 3 or days == 4 or list(str(days))[-1] == 2 or list(str(days))[-1] == 3 or list(str(days))[-1] == 4:
-            days_postfix = "дня"
-        else:
-            days_postfix = "дней"
-
-        return f"{years} {years_postfix} {month} {month_postfix} {days} {days_postfix}"
+    def pack(self):
+        parts = [self.prefix] if self.prefix else []
+        parts.extend(str(value) for value in self.__dict__.values() if value is not self.prefix)
+        return ':'.join(parts)
     
-    def get_days_to(self):
-        try:
-            birthday = datetime.strptime(self.birthday, '%d.%m.%Y')
-        except ValueError:
-            return "Неизвестно"
-        
-        now = datetime.now()
-        return self._calculate_dates(birthday, now)
+    def hash(self):
+        data = self.pack()
+        hash_object = hashlib.sha256(data.encode())
+        return hash_object.hexdigest()
 
-    def get_days_lmk(self):
-        try:
-            lmk = datetime.strptime(self.lmk, '%d.%m.%Y')
-        except ValueError:
-            return "Неизвестно"
-        
-        now = datetime.now()
-        return self._calculate_dates(lmk, now)
-        
-    def _calculate_dates(self, original_date, now):
-        delta1 = datetime(now.year, original_date.month, original_date.day)
-        delta2 = datetime(now.year+1, original_date.month, original_date.day)
-        
-        return ((delta1 if delta1 > now else delta2) - now).days
-    
-    def get_years_old(self):
-        try:
-            birthday = datetime.strptime(self.birthday, '%d.%m.%Y')
-        except ValueError:
-            return "Неизвестно"
-        
-        now = datetime.now()
-        delta = now - birthday
-        return delta.days // 365
-
-
-class EmployeeBuilder():
-    def __init__(self,
-                name: str = "",
-                birthday: str = "",
-                registration: str = "",
-                workstarted: str = "",
-                lmk: str = "",
-                id: str = "") -> None:
-        self.employee = Employee(name,
-                birthday,
-                registration,
-                workstarted,
-                lmk,
-                id)
-    
-    def get_employee(self):
-        return self.employee
-    
-    def __dict__(self):
-        return self.employee.__dict__()
+    @classmethod
+    def unpack(cls, callback_string):
+        parts = callback_string.split(':')
+        if cls.prefix and parts[0] != cls.prefix:
+            raise ValueError("Invalid prefix")
+        kwargs = dict(zip(cls.__init__.__code__.co_varnames[1:], parts[1:] if cls.prefix else parts))
+        return cls(**kwargs)

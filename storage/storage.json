@@ -1,3 +1,86 @@
 {
-  "all": []
+  "all": [
+    {
+      "name": "Тест 2",
+      "birthday": "01.01.2003",
+      "registration": "27.03.2025",
+      "workstarted": "02.02.2022",
+      "lmk": "03.03.2023",
+      "id": "67e548s7b73h92319t9fa2c0",
+      "cert_base": null,
+      "cert_base_path": [],
+      "cert_profi": null,
+      "cert_profi_path": [],
+      "test_results": []
+    },
+    {
+      "name": "Тест 0",
+      "birthday": "01.01.2003",
+      "registration": "27.03.2025",
+      "workstarted": "02.02.2022",
+      "lmk": "03.03.2023",
+      "id": "67e548s7bd3h22319t9fa2c0",
+      "cert_base": null,
+      "cert_base_path": [],
+      "cert_profi": null,
+      "cert_profi_path": [],
+      "test_results": [
+        {
+          "completion_time": "19:00",
+          "score": 28,
+          "rank": 286,
+          "date": "12.02.2025",
+          "type": "Профи",
+          "_id": "67e57415a73e926259d3e193"
+        },
+        {
+          "completion_time": "05:00",
+          "score": 30,
+          "rank": 10,
+          "date": "12.05.2025",
+          "type": "База",
+          "_id": "67e58534a73e927ccddaec9a"
+        },
+        {
+          "completion_time": "07:00",
+          "score": 28,
+          "rank": 15,
+          "date": "12.03.2025",
+          "type": "База",
+          "_id": "67e58587a73e927d4eeaf845"
+        },
+        {
+          "completion_time": "17:34",
+          "score": 29,
+          "rank": 267,
+          "date": "10.03.2023",
+          "type": "База",
+          "_id": "67e58617a73e927df045c3f5"
+        },
+        {
+          "completion_time": "18:37",
+          "score": 29,
+          "rank": 106,
+          "date": "09.06.2022",
+          "type": "Профи",
+          "_id": "67e58634a73e927df045c3f6"
+        }
+      ]
+    },
+    {
+      "name": "Тест 3",
+      "birthday": "01.01.2003",
+      "registration": "27.03.2025",
+      "workstarted": "02.02.2022",
+      "lmk": "03.03.2023",
+      "id": "67e548s7bd3h92319t9fa2c0",
+      "cert_base": "25.03.2025",
+      "cert_base_path": [
+        "storage/certificates/67e548s7bd3h92319t9fa2c0/CRT_01.04.2025_15:19:25.JPG"
+      ],
+      "cert_profi": null,
+      "cert_profi_path": [],
+      "test_results": []
+    }
+  ]
 }

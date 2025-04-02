@@ -6,7 +6,7 @@ from aiogram.dispatcher import FSMContext
 
 from app.telegram.handlers.states import AddSG
 from app.core.funcs.add_employee import func_add_employee
-from app.core.funcs.correct_date import is_date_correct
+from app.core.funcs.correct_date import date_incorrect
 
 
 async def cmd_add(message: types.Message, state: FSMContext):
@@ -44,7 +44,7 @@ async def add_fio(message: types.Message, state: FSMContext):
 async def add_birthday(message: types.Message, state: FSMContext):
     if message.text.lower() != 'пропустить':
         birthday = message.text
-        incorrect = is_date_correct(birthday)
+        incorrect = date_incorrect(birthday)
         if incorrect:
             await message.reply(
                 f"{incorrect}"
@@ -70,7 +70,7 @@ async def add_birthday(message: types.Message, state: FSMContext):
 async def add_workstarted(message: types.Message, state: FSMContext):
     if message.text.lower() != 'пропустить':
         workstarted = message.text
-        incorrect = is_date_correct(workstarted)
+        incorrect = date_incorrect(workstarted)
         if incorrect:
             await message.reply(
                 f"{incorrect}"
@@ -97,7 +97,7 @@ async def add_workstarted(message: types.Message, state: FSMContext):
 async def add_lmk(message: types.Message, state: FSMContext):
     if message.text.lower() != 'пропустить':
         lmk = message.text
-        incorrect = is_date_correct(lmk)
+        incorrect = date_incorrect(lmk)
         if incorrect:
             await message.reply(
                 f"{incorrect}"

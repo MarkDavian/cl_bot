@@ -1,0 +1,10 @@
+{
+    "all": [
+        {
+            "id": "",
+            "chat_notify": true,
+            "registration": "date",
+            "role": "admin"
+        }   
+    ]
+}
