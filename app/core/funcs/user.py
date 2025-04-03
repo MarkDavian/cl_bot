@@ -1,5 +1,5 @@
 from app.core.db.database import Users
-from app.core.types.types import UserBuilder, User
+from app.core.types.types import UserBuilder, User, Role
 from config import SETTINGS
 
 
@@ -15,7 +15,8 @@ def add_user(
             UserBuilder(
                 id,
                 chat_notify,
-                registration
+                registration,
+                Role.ADMIN
             ).__dict__()
         )
 

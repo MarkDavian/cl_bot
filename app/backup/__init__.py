@@ -40,8 +40,7 @@ async def backup():
     bot = Bot(SETTINGS.BOT_TOKEN, parse_mode='html')
 
     while True:
-        # x = -1002156206771
-        x = -4514552920
+        x = SETTINGS.BACKUP_CHAT
         employees = func_get_employees()
         
         # Создаем файл Excel с несколькими листами
@@ -164,6 +163,10 @@ async def backup():
             document=open(zip_path, "rb"),
             caption="Резервная копия директории storage"
         )
+        
+        # Удаляем файлы после отправки
+        os.remove(excel_file)
+        os.remove(zip_path)
         
         await asyncio.sleep(SETTINGS.INTERVAL_24)
 
