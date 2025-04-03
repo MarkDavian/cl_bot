@@ -1,6 +1,6 @@
 from enum import Enum
 
-class _Role(Enum):
+class Role(Enum):
     ADMIN = "admin"
     USER = "user"
 
@@ -9,14 +9,14 @@ class User():
     id: str
     chat_notify: bool
     registration: str
-    role: _Role
+    role: Role
 
 
     def __init__(self,
                 id: str,
                 chat_notify: bool,
                 registration: str,
-                role: _Role
+                role: Role
     ) -> None:
         self.id = id
         self.chat_notify = chat_notify
