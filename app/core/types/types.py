@@ -1,7 +1,7 @@
 import hashlib
 
 from app.core.types.employee import Employee, EmployeeBuilder
-from app.core.types.user import User, UserBuilder
+from app.core.types.user import User, UserBuilder, Role
 from app.core.types.app import App, AppBuilder
 
 __all__ = [
@@ -10,7 +10,8 @@ __all__ = [
     'User',
     'UserBuilder',
     'App',
-    'AppBuilder'
+    'AppBuilder',
+    'Role'
 ]
 
 class CallbackData:
