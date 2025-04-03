@@ -30,11 +30,7 @@ async def start_write_password(message: types.Message, state: FSMContext):
     else:
         await message.bot.send_message(
             message.chat.id,
-            'Пароль принят, посылаю инструкцию'
-        )
-        await message.reply_document(
-            open('files/Презентация бота.pdf', 'rb'),
-            "Привет! Ознакомься с инструкцией)"
+            'Пароль принят'
         )
         add_user(message.from_user.id, False, datetime.now().strftime('%d.%m.%Y'))
         await state.finish()
