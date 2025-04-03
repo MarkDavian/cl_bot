@@ -18,6 +18,10 @@ with open('.token', 'r') as file:
 with open('.chat', 'r') as file:
     chat = file.readline()
 
+# Загрузка идентификатора чата для отправки резервных копий
+with open('.backup_chat', 'r') as file:
+    backup_chat = file.readline()
+
 
 # Загрузка настроек по умолчанию из JSON-файла
 with open('storage/default_app.json', 'r') as file:
@@ -33,6 +37,7 @@ class Settings():
     """
     BOT_TOKEN: str = env_token
     CHAT: str = chat
+    BACKUP_CHAT: str = backup_chat
     # 24 hours in seconds
     INTERVAL_24 = 24*60*60
 
